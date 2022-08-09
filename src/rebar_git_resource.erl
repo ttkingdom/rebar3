@@ -117,6 +117,14 @@ parse_git_url(not_scp, Url) ->
             {error, Reason}
     end.
 
+to_https(Url) ->
+    case parse_git_url(Url) of
+        {ok, {Host, Path}} -> 
+            {ok, lists:flatten(io_lib:format("https://~s~s", [Host, Path]))};
+        {error, _, Reason} ->
+            {error, Reason}
+    end.
+
 download(TmpDir, AppInfo, State, _) ->
     check_type_support(),
     case download_(TmpDir, rebar_app_info:source(AppInfo), State) of
@@ -168,44 +176,50 @@ maybe_warn_local_url(Url) ->
 
 %% Use different git clone commands depending on git --version
 git_clone(branch,Vsn,Url,Dir,Branch) when Vsn >= {1,7,10}; Vsn =:= undefined ->
+    {ok, HttpsUrl} = to_https(Url),
     rebar_utils:sh(?FMT("git clone ~ts ~ts ~ts -b ~ts --single-branch",
                         [git_clone_options(),
-                         rebar_utils:escape_chars(Url),
+                         rebar_utils:escape_chars(HttpsUrl),
                          rebar_utils:escape_chars(filename:basename(Dir)),
                          rebar_utils:escape_chars(Branch)]),
                    [{cd, filename:dirname(Dir)}]);
 git_clone(branch,_Vsn,Url,Dir,Branch) ->
+    {ok, HttpsUrl} = to_https(Url),
     rebar_utils:sh(?FMT("git clone ~ts ~ts ~ts -b ~ts",
                         [git_clone_options(),
-                         rebar_utils:escape_chars(Url),
+                         rebar_utils:escape_chars(HttpsUrl),
                          rebar_utils:escape_chars(filename:basename(Dir)),
                          rebar_utils:escape_chars(Branch)]),
                    [{cd, filename:dirname(Dir)}]);
 git_clone(tag,Vsn,Url,Dir,Tag) when Vsn >= {1,7,10}; Vsn =:= undefined ->
+    {ok, HttpsUrl} = to_https(Url),
     rebar_utils:sh(?FMT("git clone ~ts ~ts ~ts -b ~ts --single-branch",
                         [git_clone_options(),
-                         rebar_utils:escape_chars(Url),
+                         rebar_utils:escape_chars(HttpsUrl),
                          rebar_utils:escape_chars(filename:basename(Dir)),
                          rebar_utils:escape_chars(Tag)]),
                    [{cd, filename:dirname(Dir)}]);
 git_clone(tag,_Vsn,Url,Dir,Tag) ->
+    {ok, HttpsUrl} = to_https(Url),
     rebar_utils:sh(?FMT("git clone ~ts ~ts ~ts -b ~ts",
                         [git_clone_options(),
-                         rebar_utils:escape_chars(Url),
+                         rebar_utils:escape_chars(HttpsUrl),
                          rebar_utils:escape_chars(filename:basename(Dir)),
                          rebar_utils:escape_chars(Tag)]),
                    [{cd, filename:dirname(Dir)}]);
 git_clone(ref,_Vsn,Url,Dir,Ref) ->
+    {ok, HttpsUrl} = to_https(Url),
     rebar_utils:sh(?FMT("git clone ~ts -n ~ts ~ts",
                         [git_clone_options(),
-                         rebar_utils:escape_chars(Url),
+                         rebar_utils:escape_chars(HttpsUrl),
                          rebar_utils:escape_chars(filename:basename(Dir))]),
                    [{cd, filename:dirname(Dir)}]),
     rebar_utils:sh(?FMT("git checkout -q ~ts", [Ref]), [{cd, Dir}]);
 git_clone(rev,_Vsn,Url,Dir,Rev) ->
+    {ok, HttpsUrl} = to_https(Url),
     rebar_utils:sh(?FMT("git clone ~ts -n ~ts ~ts",
                         [git_clone_options(),
-                         rebar_utils:escape_chars(Url),
+                         rebar_utils:escape_chars(HttpsUrl),
                          rebar_utils:escape_chars(filename:basename(Dir))]),
                    [{cd, filename:dirname(Dir)}]),
     rebar_utils:sh(?FMT("git checkout -q ~ts", [rebar_utils:escape_chars(Rev)]),
